@@ -9,11 +9,9 @@ import {cn} from '@/lib/utils';
 import {
   ChevronDownIcon,
   Home,
-  ListVideo,
   Menu,
   Mic2,
   Music,
-  Play,
   RadioIcon,
   SquareStack,
   User,
@@ -55,29 +53,29 @@ export default function Sidebar() {
       icon: <RadioIcon size={15} className="mr-2" />,
       href: '/home/',
     },
-    {
-      label: 'Library',
-      name: 'Playlist',
-      icon: <Play size={15} className="mr-2" />,
-      href: '/home/playlist',
-      submenu: [
-        {
-          name: 'Playlist 1',
-          icon: <ListVideo size={15} className="mr-2" />,
-          href: '/home/',
-        },
-        {
-          name: 'Playlist 2',
-          icon: <ListVideo size={15} className="mr-2" />,
-          href: '/home/',
-        },
-        {
-          name: 'Playlist 3',
-          icon: <ListVideo size={15} className="mr-2" />,
-          href: '/home/',
-        },
-      ],
-    },
+    // {
+    //   label: 'Library',
+    //   name: 'Playlist',
+    //   icon: <Play size={15} className="mr-2" />,
+    //   href: '/home/playlist',
+    //   submenu: [
+    //     {
+    //       name: 'Playlist 1',
+    //       icon: <ListVideo size={15} className="mr-2" />,
+    //       href: '/home/',
+    //     },
+    //     {
+    //       name: 'Playlist 2',
+    //       icon: <ListVideo size={15} className="mr-2" />,
+    //       href: '/home/',
+    //     },
+    //     {
+    //       name: 'Playlist 3',
+    //       icon: <ListVideo size={15} className="mr-2" />,
+    //       href: '/home/',
+    //     },
+    //   ],
+    // },
     {
       label: 'Library',
       name: 'Songs',
@@ -101,7 +99,7 @@ export default function Sidebar() {
   const uniqueLabels = Array.from(new Set(menus.map(menu => menu.label)));
 
   return (
-    <ScrollArea className="h-screen lg:w-48 sm:w-full rounded-md">
+    <ScrollArea className="h-screen lg:w-48 sm:w-full rounded-md bg-purple-300">
       <div className="md:px-4 sm:p-0 mt-5 ">
         {uniqueLabels.map((label, index) => (
           <React.Fragment key={label}>

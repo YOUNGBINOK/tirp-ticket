@@ -1,3 +1,8 @@
+import Main from '@/app/components/layout/Main';
 export default function Home() {
-  return <div></div>;
+  return (
+    <div>
+      <Main />
+    </div>
+  );
 }

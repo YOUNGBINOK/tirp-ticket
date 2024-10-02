@@ -6,16 +6,7 @@ import {
 } from '@/app/components/ui/accordion';
 import {ScrollArea} from '@/app/components/ui/scroll-area';
 import {cn} from '@/lib/utils';
-import {
-  ChevronDownIcon,
-  Home,
-  Menu,
-  Mic2,
-  Music,
-  RadioIcon,
-  SquareStack,
-  User,
-} from 'lucide-react';
+import {ChevronDownIcon, Home, Menu} from 'lucide-react';
 import Link from 'next/link';
 import * as React from 'react';
 
@@ -41,18 +32,18 @@ export default function Sidebar() {
       icon: <Home size={15} className="mr-2" />,
       href: '/dashboard',
     },
-    {
-      label: 'Discover',
-      name: 'Browse',
-      icon: <SquareStack size={15} className="mr-2" />,
-      href: '/home',
-    },
-    {
-      label: 'Discover',
-      name: 'Radio',
-      icon: <RadioIcon size={15} className="mr-2" />,
-      href: '/home/',
-    },
+    // {
+    //   label: 'Discover',
+    //   name: 'Browse',
+    //   icon: <SquareStack size={15} className="mr-2" />,
+    //   href: '/home',
+    // },
+    // {
+    //   label: 'Discover',
+    //   name: 'Radio',
+    //   icon: <RadioIcon size={15} className="mr-2" />,
+    //   href: '/home/',
+    // },
     // {
     //   label: 'Library',
     //   name: 'Playlist',
@@ -76,36 +67,37 @@ export default function Sidebar() {
     //     },
     //   ],
     // },
-    {
-      label: 'Library',
-      name: 'Songs',
-      icon: <Music size={15} className="mr-2" />,
-      href: '/home/',
-    },
-    {
-      label: 'Library',
-      name: 'Made for You',
-      icon: <User size={15} className="mr-2" />,
-      href: '/home/',
-    },
-    {
-      label: 'Library',
-      name: 'Artist',
-      icon: <Mic2 size={15} className="mr-2" />,
-      href: '/home/',
-    },
+    // {
+    //   label: 'Library',
+    //   name: 'Songs',
+    //   icon: <Music size={15} className="mr-2" />,
+    //   href: '/home/',
+    // },
+    // {
+    //   label: 'Library',
+    //   name: 'Made for You',
+    //   icon: <User size={15} className="mr-2" />,
+    //   href: '/home/',
+    // },
+    // {
+    //   label: 'Library',
+    //   name: 'Artist',
+    //   icon: <Mic2 size={15} className="mr-2" />,
+    //   href: '/home/',
+    // },
   ];
 
   const uniqueLabels = Array.from(new Set(menus.map(menu => menu.label)));
 
   return (
-    <ScrollArea className="h-screen lg:w-48 sm:w-full rounded-md bg-purple-300">
+    <ScrollArea className="h-screen lg:w-48 sm:w-full rounded-md bg-main_color">
       <div className="md:px-4 sm:p-0 mt-5 ">
         {uniqueLabels.map((label, index) => (
           <React.Fragment key={label}>
             {label && (
+              // 탭 메뉴 제목
               <p
-                className={`mx-4 mb-3 text-xs text-left tracking-wider font-bold text-slate-300 ${
+                className={`mx-4 mb-3 text-xs text-left tracking-wider font-bold text-slate-700  ${
                   index > 0 ? 'mt-10' : ''
                 }`}
               >
@@ -120,7 +112,7 @@ export default function Sidebar() {
                     <Accordion
                       key={menu.name}
                       type="single"
-                      className="mt-[-10px] mb-[-10px] p-0 font-normal"
+                      className="mt-[-10px] mb-[-10px] p-0 font-normal "
                       collapsible
                     >
                       <AccordionItem
@@ -130,7 +122,7 @@ export default function Sidebar() {
                         <AccordionTrigger>
                           <a
                             key={menu.name}
-                            className="w-full flex justify-start text-xs font-normal h-10 bg-background my-2 items-center p-4 hover:bg-primary hover:text-white dark:hover:bg-primary dark:hover:text-background rounded-md"
+                            className="w-full flex justify-start text-xs font-normal h-10 bg-button_color my-2 items-center p-4 hover:bg-button_hover_color hover:text-white dark:hover:bg-button_hover_color dark:hover:text-background rounded-md"
                           >
                             <div
                               className={cn(
@@ -163,7 +155,7 @@ export default function Sidebar() {
                     <div key={menu.name}>
                       <Link
                         href={menu.href}
-                        className="flex text-xs h-10 bg-white dark:bg-background my-2 items-center p-4 hover:bg-primary dark:hover:bg-primary dark:hover:text-background hover:text-white rounded-md"
+                        className="flex text-xs h-10 bg-white dark:bg-background my-2 items-center p-4 hover:bg-second_color  dark:hover:bg-primary dark:hover:text-background hover:text-white rounded-md"
                       >
                         <div className="w-6">{menu.icon}</div>
                         {menu.name}

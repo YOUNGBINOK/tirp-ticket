@@ -41,7 +41,7 @@ export default function NavbarComponent() {
   };
 
   return (
-    <header className="sticky top-0 z-50 flex flex-wrap sm:justify-start sm:flex-nowrap w-full bg-purple-300 dark:bg-background dark:text-white text-sm py-4 dark:border-gray-600 border-b border-gray-200">
+    <header className="sticky top-0 z-50 flex flex-wrap sm:justify-start sm:flex-nowrap w-full bg-main_color dark:bg-background dark:text-white text-sm py-4 dark:border-gray-600 border-b border-gray-200">
       <nav
         className="max-w-full w-full mx-auto px-4 sm:flex sm:items-center sm:justify-between"
         aria-label="Global"

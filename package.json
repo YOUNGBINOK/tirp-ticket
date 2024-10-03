@@ -30,7 +30,8 @@
     "react-select": "^5.8.1",
     "react-toggle-dark-mode": "^1.1.1",
     "tailwind-merge": "^2.5.2",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "zustand": "^5.0.0-rc.2"
   },
   "devDependencies": {
     "@types/node": "^20",

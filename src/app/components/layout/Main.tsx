@@ -1,120 +1,91 @@
 'use client';
 
+import {OrbitControls, Sphere} from '@react-three/drei';
+import {Canvas} from '@react-three/fiber';
 import {useState} from 'react';
-import {CgArrowsExchange} from 'react-icons/cg';
+import * as THREE from 'three';
 
-const Main = () => {
-  const [isRoundTrip, setIsRoundTrip] = useState(false);
-  const [isMultiCity, setIsMultiCity] = useState(false);
-  const [departure, setDeparture] = useState('');
-  const [arrival, setArrival] = useState('');
-  const [departureDate, setDepartureDate] = useState('');
-  const [returnDate, setReturnDate] = useState('');
+// 공항 데이터
+type Airport = {
+  name: string;
+  lat: number;
+  lng: number;
+};
 
-  const handleSearch = () => {
-    console.log('검색:', {departure, arrival, departureDate, returnDate});
-  };
+const airportData: Airport[] = [
+  {name: 'Incheon International Airport', lat: 37.4602, lng: 126.4407},
+  {name: 'Los Angeles International Airport', lat: 33.9416, lng: -118.4085},
+  {name: 'John F. Kennedy International Airport', lat: 40.6413, lng: -73.7781},
+  // 추가 공항 데이터...
+];
 
-  const handleSwap = () => {
-    setDeparture(arrival);
-    setArrival(departure);
+const Globe = ({
+  onAirportClick,
+}: {
+  onAirportClick: (airport: Airport) => void;
+}) => {
+  const globeTexture = new THREE.TextureLoader().load(
+    'https://cdn.pixabay.com/photo/2016/11/29/09/21/earth-1868602_1280.jpg',
+  );
+
+  return (
+    <Sphere args={[1, 64, 64]}>
+      <meshPhongMaterial map={globeTexture} />
+      {airportData.map(airport => {
+        // 위도와 경도를 사용하여 구의 표면에서의 위치 계산
+        const phi = (90 - airport.lat) * (Math.PI / 180);
+        const theta = (airport.lng + 180) * (Math.PI / 180);
+        const x = -(1 * Math.sin(phi) * Math.cos(theta));
+        const y = 1 * Math.cos(phi);
+        const z = 1 * Math.sin(phi) * Math.sin(theta);
+
+        return (
+          <mesh
+            key={airport.name}
+            position={[x, y, z]}
+            onClick={() => onAirportClick(airport)}
+          >
+            <sphereGeometry args={[0.02, 16, 16]} />
+            <meshPhongMaterial color="red" />
+          </mesh>
+        );
+      })}
+    </Sphere>
+  );
+};
+
+const GlobeComponent = () => {
+  const [startAirport, setStartAirport] = useState<Airport | null>(null);
+  const [endAirport, setEndAirport] = useState<Airport | null>(null);
+
+  const handleAirportClick = (airport: Airport) => {
+    if (!startAirport) {
+      setStartAirport(airport);
+    } else if (!endAirport) {
+      setEndAirport(airport);
+    } else {
+      // 초기화하고 다시 선택
+      setStartAirport(airport);
+      setEndAirport(null);
+    }
   };
 
   return (
-    <div className="bg-white shadow-lg rounded-lg p-6">
-      <h1 className="text-xl font-bold mb-4">항공권 검색하기</h1>
-
-      <div className="flex mb-4">
-        <button
-          className={`flex-1 text-lg font-bold ${!isRoundTrip && !isMultiCity ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'} py-2 rounded-l-lg`}
-          onClick={() => {
-            setIsRoundTrip(false);
-            setIsMultiCity(false);
-          }}
-        >
-          편도
-        </button>
-        <button
-          className={`flex-1 text-lg font-bold ${isRoundTrip ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'} py-2`}
-          onClick={() => {
-            setIsRoundTrip(true);
-            setIsMultiCity(false);
-          }}
-        >
-          왕복
-        </button>
-        <button
-          className={`flex-1 text-lg font-bold ${isMultiCity ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'} py-2 rounded-r-lg`}
-          onClick={() => {
-            setIsMultiCity(true);
-            setIsRoundTrip(false);
-          }}
-        >
-          다구간
-        </button>
+    <div style={{height: '100vh'}}>
+      <h1 className="text-xl font-bold mb-4">3D 지구본 공항 선택하기</h1>
+      <div className="mb-4">
+        <p>출발지: {startAirport ? startAirport.name : '선택되지 않음'}</p>
+        <p>도착지: {endAirport ? endAirport.name : '선택되지 않음'}</p>
       </div>
 
-      <div className="flex items-center mb-4 border border-gray-300 rounded-lg p-2">
-        <input
-          className="bg-transparent text-gray-700 border-none flex-1 outline-none placeholder-gray-400"
-          value={departure}
-          onChange={e => setDeparture(e.target.value)}
-          placeholder="출발지"
-        />
-
-        {isRoundTrip && (
-          <>
-            <CgArrowsExchange
-              className="text-gray-800 text-xl mx-2 cursor-pointer border-2 rounded-full border-blue-600"
-              onClick={handleSwap}
-            />
-            <input
-              className="bg-transparent text-gray-700 border-none flex-1 outline-none placeholder-gray-400"
-              value={arrival}
-              onChange={e => setArrival(e.target.value)}
-              placeholder="도착지"
-            />
-          </>
-        )}
-
-        <input
-          type="date"
-          className="bg-transparent text-gray-700 border-none flex-1 outline-none placeholder-gray-400"
-          value={departureDate}
-          onChange={e => setDepartureDate(e.target.value)}
-        />
-
-        {isRoundTrip && (
-          <input
-            type="date"
-            className="bg-transparent text-gray-700 border-none flex-1 outline-none placeholder-gray-400"
-            value={returnDate}
-            onChange={e => setReturnDate(e.target.value)}
-          />
-        )}
-      </div>
-
-      {isMultiCity && (
-        <div className="flex items-center mb-4">
-          <input
-            className="bg-gray-100 text-gray-700 border border-gray-300 rounded-lg p-2 mr-2 flex-1"
-            placeholder="중간 도시"
-          />
-          <input
-            type="date"
-            className="bg-gray-100 text-gray-700 border border-gray-300 rounded-lg p-2 flex-1"
-          />
-        </div>
-      )}
-
-      <button
-        onClick={handleSearch}
-        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200"
-      >
-        검색하기
-      </button>
+      <Canvas style={{height: '400px'}}>
+        <ambientLight />
+        <pointLight position={[10, 10, 10]} />
+        <OrbitControls />
+        <Globe onAirportClick={handleAirportClick} />
+      </Canvas>
     </div>
   );
 };
 
-export default Main;
+export default GlobeComponent;

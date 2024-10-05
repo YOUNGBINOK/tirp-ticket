@@ -37,3 +37,4 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 floating input
 example : https://flowbite.com/docs/forms/floating-label/
+opensky API : https://openskynetwork.github.io/opensky-api/

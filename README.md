@@ -38,3 +38,5 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 floating input
 example : https://flowbite.com/docs/forms/floating-label/
 opensky API : https://openskynetwork.github.io/opensky-api/
+threejs example : https://github.com/GhostCatcg/3d-earth
+공항 정보 : https://raw.githubusercontent.com/jpatokal/openflights/master/data/airports.dat

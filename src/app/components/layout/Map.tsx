@@ -1,11 +1,10 @@
 'use client';
 
-import {OrbitControls, Sphere} from '@react-three/drei';
+import {Line, OrbitControls, Sphere} from '@react-three/drei';
 import {Canvas} from '@react-three/fiber';
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import * as THREE from 'three';
 
-// 공항 데이터
 type Airport = {
   name: string;
   lat: number;
@@ -19,22 +18,73 @@ const airportData: Airport[] = [
   // 추가 공항 데이터...
 ];
 
-// 클릭 효과 추가
-// 호버 효과 추가
 const Globe = ({
   onAirportClick,
 }: {
   onAirportClick: (airport: Airport) => void;
 }) => {
+  const [boundaries, setBoundaries] = useState<any[]>([]);
   const globeTexture = new THREE.TextureLoader().load(
-    '../../../../images/earth.jpg',
+    '../../../../images/earth-blue-marble.jpg',
   );
+
+  // GeoJSON 경계 데이터를 가져오기
+  useEffect(() => {
+    const fetchBoundaries = async () => {
+      const response = await fetch('../../../../data/world.geojson');
+      const data = await response.json();
+      const lines: any[] = [];
+
+      data.features.forEach((feature: any) => {
+        const {geometry} = feature;
+
+        if (geometry.type === 'Polygon') {
+          geometry.coordinates.forEach((polygon: any) => {
+            if (Array.isArray(polygon)) {
+              const linePoints = polygon.map(([lng, lat]: [number, number]) => {
+                const phi = (90 - lat) * (Math.PI / 180);
+                const theta = (lng + 180) * (Math.PI / 180);
+                return [
+                  -(1 * Math.sin(phi) * Math.cos(theta)),
+                  1 * Math.cos(phi),
+                  1 * Math.sin(phi) * Math.sin(theta),
+                ];
+              });
+              lines.push(linePoints);
+            }
+          });
+        } else if (geometry.type === 'MultiPolygon') {
+          geometry.coordinates.forEach((multiPolygon: any) => {
+            multiPolygon.forEach((polygon: any) => {
+              if (Array.isArray(polygon)) {
+                const linePoints = polygon.map(
+                  ([lng, lat]: [number, number]) => {
+                    const phi = (90 - lat) * (Math.PI / 180);
+                    const theta = (lng + 180) * (Math.PI / 180);
+                    return [
+                      -(1 * Math.sin(phi) * Math.cos(theta)),
+                      1 * Math.cos(phi),
+                      1 * Math.sin(phi) * Math.sin(theta),
+                    ];
+                  },
+                );
+                lines.push(linePoints);
+              }
+            });
+          });
+        }
+      });
+
+      setBoundaries(lines);
+    };
+
+    fetchBoundaries();
+  }, []);
 
   return (
     <Sphere args={[1, 64, 64]}>
       <meshPhongMaterial map={globeTexture} />
       {airportData.map(airport => {
-        // 위도와 경도를 사용하여 구의 표면에서의 위치 계산
         const phi = (90 - airport.lat) * (Math.PI / 180);
         const theta = (airport.lng + 180) * (Math.PI / 180);
         const x = -(1 * Math.sin(phi) * Math.cos(theta));
@@ -52,6 +102,16 @@ const Globe = ({
           </mesh>
         );
       })}
+
+      {boundaries.map((line, index) => (
+        <Line
+          key={index}
+          points={line}
+          color="white"
+          lineWidth={1}
+          dashed={false}
+        />
+      ))}
     </Sphere>
   );
 };
@@ -66,7 +126,6 @@ const Map = () => {
     } else if (!endAirport) {
       setEndAirport(airport);
     } else {
-      // 초기화하고 다시 선택
       setStartAirport(airport);
       setEndAirport(null);
     }

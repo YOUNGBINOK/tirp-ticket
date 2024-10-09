@@ -36,7 +36,8 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
 floating input
-example : https://flowbite.com/docs/forms/floating-label/
-opensky API : https://openskynetwork.github.io/opensky-api/
-threejs example : https://github.com/GhostCatcg/3d-earth
-공항 정보 : https://raw.githubusercontent.com/jpatokal/openflights/master/data/airports.dat
+example : https://flowbite.com/docs/forms/floating-label/ .
+opensky API : https://openskynetwork.github.io/opensky-api/ .
+threejs example : https://github.com/GhostCatcg/3d-earth .
+공항 정보 : https://raw.githubusercontent.com/jpatokal/openflights/master/data/airports.dat .
+미니어처 earth :https://www.atlantastretch.com/mappamondo/docs/#section_2 .

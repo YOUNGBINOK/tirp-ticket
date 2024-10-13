@@ -1,9 +1,12 @@
 'use client';
 
-import {Line, OrbitControls, Sphere} from '@react-three/drei';
-import {Canvas} from '@react-three/fiber';
-import {useEffect, useState} from 'react';
-import * as THREE from 'three';
+import * as d3 from 'd3';
+import {FeatureCollection, Geometry} from 'geojson';
+import {useEffect, useRef} from 'react';
+
+type GlobeProps = {
+  data: FeatureCollection<Geometry>;
+};
 
 type Airport = {
   name: string;
@@ -18,135 +21,100 @@ const airportData: Airport[] = [
   // 추가 공항 데이터...
 ];
 
-const Globe = ({
-  onAirportClick,
-}: {
-  onAirportClick: (airport: Airport) => void;
-}) => {
-  const [boundaries, setBoundaries] = useState<any[]>([]);
-  const globeTexture = new THREE.TextureLoader().load(
-    '../../../../images/earth-blue-marble.jpg',
-  );
+const Map = ({data}: GlobeProps) => {
+  const mapRef = useRef<HTMLDivElement>(null);
 
-  // GeoJSON 경계 데이터를 가져오기
   useEffect(() => {
-    const fetchBoundaries = async () => {
-      const response = await fetch('../../../../data/world.geojson');
-      const data = await response.json();
-      const lines: any[] = [];
+    if (!mapRef.current) return;
 
-      data.features.forEach((feature: any) => {
-        const {geometry} = feature;
+    const sensitivity = 75;
+    let width = mapRef.current.getBoundingClientRect().width;
+    const height = 500;
 
-        if (geometry.type === 'Polygon') {
-          geometry.coordinates.forEach((polygon: any) => {
-            if (Array.isArray(polygon)) {
-              const linePoints = polygon.map(([lng, lat]: [number, number]) => {
-                const phi = (90 - lat) * (Math.PI / 180);
-                const theta = (lng + 180) * (Math.PI / 180);
-                return [
-                  -(1 * Math.sin(phi) * Math.cos(theta)),
-                  1 * Math.cos(phi),
-                  1 * Math.sin(phi) * Math.sin(theta),
-                ];
-              });
-              lines.push(linePoints);
-            }
-          });
-        } else if (geometry.type === 'MultiPolygon') {
-          geometry.coordinates.forEach((multiPolygon: any) => {
-            multiPolygon.forEach((polygon: any) => {
-              if (Array.isArray(polygon)) {
-                const linePoints = polygon.map(
-                  ([lng, lat]: [number, number]) => {
-                    const phi = (90 - lat) * (Math.PI / 180);
-                    const theta = (lng + 180) * (Math.PI / 180);
-                    return [
-                      -(1 * Math.sin(phi) * Math.cos(theta)),
-                      1 * Math.cos(phi),
-                      1 * Math.sin(phi) * Math.sin(theta),
-                    ];
-                  },
-                );
-                lines.push(linePoints);
-              }
-            });
-          });
-        }
-      });
+    const projection = d3
+      .geoOrthographic()
+      .scale(250)
+      .center([0, 0])
+      .rotate([0, -30])
+      .translate([width / 2, height / 2]);
 
-      setBoundaries(lines);
+    const initialScale = projection.scale();
+    let path = d3.geoPath().projection(projection);
+
+    const svg = d3
+      .select(mapRef.current)
+      .append('svg')
+      .attr('width', '100%')
+      .attr('height', height);
+
+    const globe = svg
+      .append('circle')
+      .attr('fill', '#EEE')
+      .attr('stroke', '#000')
+      .attr('stroke-width', '0.2')
+      .attr('cx', width / 2)
+      .attr('cy', height / 2)
+      .attr('r', initialScale);
+
+    const map = svg.append('g');
+
+    map
+      .append('g')
+      .attr('class', 'countries')
+      .selectAll('path')
+      .data(data.features)
+      .enter()
+      .append('path')
+      .attr('class', d => `country_${d.properties.name.replace(' ', '_')}`)
+      .attr('d', path)
+      .attr('fill', 'white')
+      .style('stroke', 'black')
+      .style('stroke-width', 0.3)
+      .style('opacity', 0.8);
+
+    svg
+      .call(
+        d3.drag().on('drag', event => {
+          const rotate = projection.rotate();
+          const k = sensitivity / projection.scale();
+          projection.rotate([
+            rotate[0] + event.dx * k,
+            rotate[1] - event.dy * k,
+          ]);
+          path = d3.geoPath().projection(projection);
+          svg.selectAll('path').attr('d', path);
+        }),
+      )
+      .call(
+        d3.zoom().on('zoom', event => {
+          if (event.transform.k > 0.3) {
+            projection.scale(initialScale * event.transform.k);
+            path = d3.geoPath().projection(projection);
+            svg.selectAll('path').attr('d', path);
+            globe.attr('r', projection.scale());
+          } else {
+            event.transform.k = 0.3;
+          }
+        }),
+      );
+
+    const handleResize = () => {
+      width = mapRef.current.getBoundingClientRect().width;
+      projection.translate([width / 2, height / 2]);
+      svg.attr('width', '100%');
+      globe.attr('cx', width / 2).attr('cy', height / 2);
+      svg.selectAll('path').attr('d', path);
     };
 
-    fetchBoundaries();
-  }, []);
+    window.addEventListener('resize', handleResize);
 
-  return (
-    <Sphere args={[1, 64, 64]}>
-      <meshPhongMaterial map={globeTexture} />
-      {airportData.map(airport => {
-        const phi = (90 - airport.lat) * (Math.PI / 180);
-        const theta = (airport.lng + 180) * (Math.PI / 180);
-        const x = -(1 * Math.sin(phi) * Math.cos(theta));
-        const y = 1 * Math.cos(phi);
-        const z = 1 * Math.sin(phi) * Math.sin(theta);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      svg.remove();
+    };
+  }, [data]);
 
-        return (
-          <mesh
-            key={airport.name}
-            position={[x, y, z]}
-            onClick={() => onAirportClick(airport)}
-          >
-            <sphereGeometry args={[0.01, 16, 16]} />
-            <meshPhongMaterial color="red" />
-          </mesh>
-        );
-      })}
-
-      {boundaries.map((line, index) => (
-        <Line
-          key={index}
-          points={line}
-          color="white"
-          lineWidth={1}
-          dashed={false}
-        />
-      ))}
-    </Sphere>
-  );
-};
-
-const Map = () => {
-  const [startAirport, setStartAirport] = useState<Airport | null>(null);
-  const [endAirport, setEndAirport] = useState<Airport | null>(null);
-
-  const handleAirportClick = (airport: Airport) => {
-    if (!startAirport) {
-      setStartAirport(airport);
-    } else if (!endAirport) {
-      setEndAirport(airport);
-    } else {
-      setStartAirport(airport);
-      setEndAirport(null);
-    }
-  };
-
-  return (
-    <div style={{height: '100vh'}}>
-      <h1 className="text-xl font-bold mb-4">공항 선택하기</h1>
-      <div className="mb-4">
-        <p>출발지: {startAirport ? startAirport.name : '선택되지 않음'}</p>
-        <p>도착지: {endAirport ? endAirport.name : '선택되지 않음'}</p>
-      </div>
-
-      <Canvas style={{height: '100vh'}}>
-        <ambientLight />
-        <pointLight position={[10, 10, 10]} />
-        <OrbitControls />
-        <Globe onAirportClick={handleAirportClick} />
-      </Canvas>
-    </div>
-  );
+  return <div id="map" ref={mapRef} className="w-full h-full" />;
 };
 
 export default Map;

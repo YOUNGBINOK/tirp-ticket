@@ -39,7 +39,7 @@ const Map = ({data}: GlobeProps) => {
       .translate([width / 2, height / 2]);
 
     const initialScale = projection.scale();
-    let path = d3.geoPath().projection(projection);
+    const path = d3.geoPath().projection(projection);
 
     const svg = d3
       .select(mapRef.current)
@@ -56,65 +56,93 @@ const Map = ({data}: GlobeProps) => {
       .attr('cy', height / 2)
       .attr('r', initialScale);
 
-    const map = svg.append('g');
+    const mapGroup = svg.append('g');
 
-    map
+    // 국가 경계 그리기
+    mapGroup
       .append('g')
       .attr('class', 'countries')
       .selectAll('path')
       .data(data.features)
       .enter()
       .append('path')
-      .attr('class', d => `country_${d.properties.name.replace(' ', '_')}`)
       .attr('d', path)
       .attr('fill', 'white')
-      .style('stroke', 'black')
-      .style('stroke-width', 0.3)
+      .attr('stroke', 'black')
+      .attr('stroke-width', 0.3)
       .style('opacity', 0.8);
 
-    svg
-      .call(
-        d3.drag().on('drag', event => {
-          const rotate = projection.rotate();
-          const k = sensitivity / projection.scale();
-          projection.rotate([
-            rotate[0] + event.dx * k,
-            rotate[1] - event.dy * k,
-          ]);
-          path = d3.geoPath().projection(projection);
-          svg.selectAll('path').attr('d', path);
-        }),
-      )
-      .call(
-        d3.zoom().on('zoom', event => {
-          if (event.transform.k > 0.3) {
-            projection.scale(initialScale * event.transform.k);
-            path = d3.geoPath().projection(projection);
-            svg.selectAll('path').attr('d', path);
-            globe.attr('r', projection.scale());
-          } else {
-            event.transform.k = 0.3;
-          }
-        }),
-      );
+    // 마커 생성
+    const markers = svg
+      .append('g')
+      .selectAll('circle')
+      .data(airportData)
+      .enter()
+      .append('circle')
+      .attr('r', 4)
+      .attr('fill', 'red')
+      .attr('stroke', 'black')
+      .attr('stroke-width', 0.5)
+      .attr('cx', d => projection([d.lng, d.lat])![0])
+      .attr('cy', d => projection([d.lng, d.lat])![1])
+      .append('title')
+      .text(d => d.name);
 
+    // 마커 좌표 업데이트 함수
+    const updateMarkers = () => {
+      markers
+        .attr('cx', d => {
+          const coords = projection([d.lng, d.lat]);
+          return coords ? coords[0] : 0;
+        })
+        .attr('cy', d => {
+          const coords = projection([d.lng, d.lat]);
+          return coords ? coords[1] : 0;
+        });
+    };
+
+    // 드래그로 지구본 회전 및 마커 업데이트
+    svg.call(
+      d3.drag().on('drag', event => {
+        const rotate = projection.rotate();
+        const k = sensitivity / projection.scale();
+        projection.rotate([rotate[0] + event.dx * k, rotate[1] - event.dy * k]);
+        svg.selectAll('path').attr('d', path);
+        updateMarkers();
+      }),
+    );
+
+    // 줌 이벤트 처리
+    svg.call(
+      d3.zoom().on('zoom', event => {
+        const zoomLevel = event.transform.k > 0.3 ? event.transform.k : 0.3;
+        projection.scale(initialScale * zoomLevel);
+        svg.selectAll('path').attr('d', path);
+        globe.attr('r', projection.scale());
+        updateMarkers();
+      }),
+    );
+
+    // 리사이즈 핸들러
     const handleResize = () => {
-      width = mapRef.current.getBoundingClientRect().width;
+      width = mapRef.current!.getBoundingClientRect().width;
       projection.translate([width / 2, height / 2]);
       svg.attr('width', '100%');
       globe.attr('cx', width / 2).attr('cy', height / 2);
       svg.selectAll('path').attr('d', path);
+      updateMarkers();
     };
 
     window.addEventListener('resize', handleResize);
 
+    // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
       svg.remove();
     };
   }, [data]);
 
-  return <div id="map" ref={mapRef} className="w-full h-full" />;
+  return <div id="map" ref={mapRef} className="w-full h-full"></div>;
 };
 
 export default Map;

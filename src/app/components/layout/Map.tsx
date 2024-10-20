@@ -23,6 +23,7 @@ const airportData: Airport[] = [
 
 const Map = ({data}: GlobeProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
+  const markerGroupRef = useRef<SVGGElement | null>(null); // 마커 그룹을 위한 Ref 추가
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -35,11 +36,11 @@ const Map = ({data}: GlobeProps) => {
       .geoOrthographic()
       .scale(250)
       .center([0, 0])
-      .rotate([0, -30])
+      .rotate([0, -30]) // 초기 회전값 설정
       .translate([width / 2, height / 2]);
 
     const initialScale = projection.scale();
-    const path = d3.geoPath().projection(projection);
+    let path = d3.geoPath().projection(projection);
 
     const svg = d3
       .select(mapRef.current)
@@ -56,86 +57,115 @@ const Map = ({data}: GlobeProps) => {
       .attr('cy', height / 2)
       .attr('r', initialScale);
 
-    const mapGroup = svg.append('g');
+    const map = svg.append('g');
 
-    // 국가 경계 그리기
-    mapGroup
+    map
       .append('g')
       .attr('class', 'countries')
       .selectAll('path')
       .data(data.features)
       .enter()
       .append('path')
+      .attr('class', d => `country_${d.properties.name.replace(' ', '_')}`)
       .attr('d', path)
       .attr('fill', 'white')
-      .attr('stroke', 'black')
-      .attr('stroke-width', 0.3)
+      .style('stroke', 'black')
+      .style('stroke-width', 0.3)
       .style('opacity', 0.8);
 
-    // 마커 생성
-    const markers = svg
-      .append('g')
-      .selectAll('circle')
-      .data(airportData)
-      .enter()
-      .append('circle')
-      .attr('r', 4)
-      .attr('fill', 'red')
-      .attr('stroke', 'black')
-      .attr('stroke-width', 0.5)
-      .attr('cx', d => projection([d.lng, d.lat])![0])
-      .attr('cy', d => projection([d.lng, d.lat])![1])
-      .append('title')
-      .text(d => d.name);
+    // 마커 그룹 초기화
+    const markerGroup = svg.append('g').attr('class', 'markers');
+    markerGroupRef.current = markerGroup.node(); // Ref 저장
 
-    // 마커 좌표 업데이트 함수
-    const updateMarkers = () => {
+    // 마커 그리기 및 업데이트 함수
+    const drawMarkers = () => {
+      const markers = markerGroup.selectAll('circle').data(airportData);
+
       markers
-        .attr('cx', d => {
-          const coords = projection([d.lng, d.lat]);
-          return coords ? coords[0] : 0;
+        .enter()
+        .append('circle')
+        .merge(markers)
+        .attr('r', 4)
+        .attr('cx', d => projection([d.lng, d.lat])![0]) // 초기 좌표 설정
+        .attr('cy', d => projection([d.lng, d.lat])![1]) // 초기 좌표 설정
+        .attr('fill', d => {
+          const coordinate = [d.lng, d.lat];
+          const gdistance = d3.geoDistance(
+            coordinate,
+            projection.invert([width / 2, height / 2]),
+          );
+          return gdistance > 1.5 ? 'none' : 'red';
         })
-        .attr('cy', d => {
-          const coords = projection([d.lng, d.lat]);
-          return coords ? coords[1] : 0;
+        .attr('stroke', d => {
+          const coordinate = [d.lng, d.lat];
+          const gdistance = d3.geoDistance(
+            coordinate,
+            projection.invert([width / 2, height / 2]),
+          );
+          return gdistance > 1.5 ? 'none' : 'white';
         });
+
+      markers.exit().remove(); // 데이터가 변경되었을 때 제거
+
+      markerGroup.each(function () {
+        this.parentNode.appendChild(this); // DOM 순서 보존
+      });
     };
 
-    // 드래그로 지구본 회전 및 마커 업데이트
-    svg.call(
-      d3.drag().on('drag', event => {
-        const rotate = projection.rotate();
-        const k = sensitivity / projection.scale();
-        projection.rotate([rotate[0] + event.dx * k, rotate[1] - event.dy * k]);
-        svg.selectAll('path').attr('d', path);
-        updateMarkers();
-      }),
-    );
+    // 격자무늬 추가
+    const drawGraticule = () => {
+      const graticule = d3.geoGraticule().step([10, 10]);
+      svg
+        .append('path')
+        .datum(graticule)
+        .attr('class', 'graticule')
+        .attr('d', path)
+        .style('fill', '#fff')
+        .style('stroke', '#ccc');
+    };
 
-    // 줌 이벤트 처리
-    svg.call(
-      d3.zoom().on('zoom', event => {
-        const zoomLevel = event.transform.k > 0.3 ? event.transform.k : 0.3;
-        projection.scale(initialScale * zoomLevel);
-        svg.selectAll('path').attr('d', path);
-        globe.attr('r', projection.scale());
-        updateMarkers();
-      }),
-    );
+    drawMarkers(); // 초기 마커 그리기 호출
 
-    // 리사이즈 핸들러
+    // 지구본 드래그 및 회전 이벤트
+    svg
+      .call(
+        d3.drag().on('drag', event => {
+          const rotate = projection.rotate();
+          const k = sensitivity / projection.scale();
+          projection.rotate([
+            rotate[0] + event.dx * k,
+            rotate[1] - event.dy * k,
+          ]);
+          path = d3.geoPath().projection(projection);
+          svg.selectAll('path').attr('d', path);
+          drawMarkers(); // 회전 시 마커 좌표 업데이트
+        }),
+      )
+      .call(
+        d3.zoom().on('zoom', event => {
+          if (event.transform.k > 0.3) {
+            projection.scale(initialScale * event.transform.k);
+            path = d3.geoPath().projection(projection);
+            svg.selectAll('path').attr('d', path);
+            globe.attr('r', projection.scale());
+            drawMarkers(); // 확대/축소 시 마커 좌표 업데이트
+          } else {
+            event.transform.k = 0.3;
+          }
+        }),
+      );
+
     const handleResize = () => {
-      width = mapRef.current!.getBoundingClientRect().width;
+      width = mapRef.current.getBoundingClientRect().width;
       projection.translate([width / 2, height / 2]);
       svg.attr('width', '100%');
       globe.attr('cx', width / 2).attr('cy', height / 2);
       svg.selectAll('path').attr('d', path);
-      updateMarkers();
+      drawMarkers(); // 리사이즈 시 마커 좌표 업데이트
     };
 
     window.addEventListener('resize', handleResize);
 
-    // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
       svg.remove();

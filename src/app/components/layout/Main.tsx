@@ -1,5 +1,4 @@
 import Map from '@/app/components/layout/Map';
-// import MapMini from '@/app/components/layout/Map_mini';
 import {FeatureCollection, Geometry} from 'geojson';
 import {data as rawData} from '../../../../public/data/data.ts';
 
@@ -9,7 +8,6 @@ export default function Main() {
   return (
     <div>
       <Map data={data} />
-      {/* <MapMini /> */}
     </div>
   );
 }

@@ -2,60 +2,56 @@
 
 import * as d3 from 'd3';
 import {FeatureCollection, Geometry} from 'geojson';
-import {useEffect, useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
+import {Airport} from '../../../types/airport.ts';
 
 type GlobeProps = {
   data: FeatureCollection<Geometry>;
-};
-
-type Airport = {
-  name: string;
-  lat: number;
-  lng: number;
+  onAirportClick: (airport: Airport) => void;
 };
 
 const airportData: Airport[] = [
   {name: 'Incheon International Airport', lat: 37.4602, lng: 126.4407},
   {name: 'Los Angeles International Airport', lat: 33.9416, lng: -118.4085},
   {name: 'John F. Kennedy International Airport', lat: 40.6413, lng: -73.7781},
-  // 추가 공항 데이터...
 ];
 
-const Map = ({data}: GlobeProps) => {
+const Map = ({data, onAirportClick}: GlobeProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
-  const markerGroupRef = useRef<SVGGElement | null>(null); // 마커 그룹을 위한 Ref 추가
+  const markerGroupRef = useRef<SVGGElement | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+
+  const [rotation, setRotation] = useState<[number, number, number]>([
+    0, -30, 0,
+  ]);
+  const [zoomLevel, setZoomLevel] = useState<number>(250);
 
   useEffect(() => {
     if (!mapRef.current) return;
-
-    const sensitivity = 75;
-    let width = mapRef.current.getBoundingClientRect().width;
-    const height = 500;
-
-    const projection = d3
-      .geoOrthographic()
-      .scale(250)
-      .center([0, 0])
-      .rotate([0, -30]) // 초기 회전값 설정
-      .translate([width / 2, height / 2]);
-
-    const initialScale = projection.scale();
-    let path = d3.geoPath().projection(projection);
 
     const svg = d3
       .select(mapRef.current)
       .append('svg')
       .attr('width', '100%')
-      .attr('height', height);
+      .attr('height', 800);
+    svgRef.current = svg.node();
 
+    const projection = d3
+      .geoOrthographic()
+      .scale(zoomLevel)
+      .center([0, 0])
+      .rotate(rotation)
+      .translate([svgRef.current.clientWidth / 2, 400]);
+
+    const path = d3.geoPath().projection(projection);
     const globe = svg
       .append('circle')
       .attr('fill', '#EEE')
       .attr('stroke', '#000')
       .attr('stroke-width', '0.2')
-      .attr('cx', width / 2)
-      .attr('cy', height / 2)
-      .attr('r', initialScale);
+      .attr('cx', svgRef.current.clientWidth / 2)
+      .attr('cy', 400)
+      .attr('r', projection.scale());
 
     const map = svg.append('g');
 
@@ -73,11 +69,9 @@ const Map = ({data}: GlobeProps) => {
       .style('stroke-width', 0.3)
       .style('opacity', 0.8);
 
-    // 마커 그룹 초기화
     const markerGroup = svg.append('g').attr('class', 'markers');
-    markerGroupRef.current = markerGroup.node(); // Ref 저장
+    markerGroupRef.current = markerGroup.node();
 
-    // 마커 그리기 및 업데이트 함수
     const drawMarkers = () => {
       const markers = markerGroup.selectAll('circle').data(airportData);
 
@@ -86,82 +80,57 @@ const Map = ({data}: GlobeProps) => {
         .append('circle')
         .merge(markers)
         .attr('r', 4)
-        .attr('cx', d => projection([d.lng, d.lat])![0]) // 초기 좌표 설정
-        .attr('cy', d => projection([d.lng, d.lat])![1]) // 초기 좌표 설정
-        .attr('fill', d => {
-          const coordinate = [d.lng, d.lat];
-          const gdistance = d3.geoDistance(
-            coordinate,
-            projection.invert([width / 2, height / 2]),
-          );
-          return gdistance > 1.5 ? 'none' : 'red';
-        })
-        .attr('stroke', d => {
-          const coordinate = [d.lng, d.lat];
-          const gdistance = d3.geoDistance(
-            coordinate,
-            projection.invert([width / 2, height / 2]),
-          );
-          return gdistance > 1.5 ? 'none' : 'white';
+        .attr('cx', d => projection([d.lng, d.lat])![0])
+        .attr('cy', d => projection([d.lng, d.lat])![1])
+        .attr('fill', 'red')
+        .on('click', (event, d) => {
+          event.stopPropagation();
+          onAirportClick(d);
         });
 
-      markers.exit().remove(); // 데이터가 변경되었을 때 제거
-
-      markerGroup.each(function () {
-        this.parentNode.appendChild(this); // DOM 순서 보존
-      });
+      markers.exit().remove();
     };
 
-    // 격자무늬 추가
     const drawGraticule = () => {
-      const graticule = d3.geoGraticule().step([10, 10]);
+      const graticule = d3.geoGraticule().step([15, 15]);
       svg
         .append('path')
         .datum(graticule)
         .attr('class', 'graticule')
         .attr('d', path)
+        .attr('fill-opacity', '0.1')
         .style('fill', '#fff')
         .style('stroke', '#ccc');
     };
 
-    drawMarkers(); // 초기 마커 그리기 호출
+    //drawGraticule();
+    drawMarkers();
 
-    // 지구본 드래그 및 회전 이벤트
-    svg
-      .call(
-        d3.drag().on('drag', event => {
-          const rotate = projection.rotate();
-          const k = sensitivity / projection.scale();
-          projection.rotate([
-            rotate[0] + event.dx * k,
-            rotate[1] - event.dy * k,
-          ]);
-          path = d3.geoPath().projection(projection);
-          svg.selectAll('path').attr('d', path);
-          drawMarkers(); // 회전 시 마커 좌표 업데이트
-        }),
-      )
-      .call(
-        d3.zoom().on('zoom', event => {
-          if (event.transform.k > 0.3) {
-            projection.scale(initialScale * event.transform.k);
-            path = d3.geoPath().projection(projection);
-            svg.selectAll('path').attr('d', path);
-            globe.attr('r', projection.scale());
-            drawMarkers(); // 확대/축소 시 마커 좌표 업데이트
-          } else {
-            event.transform.k = 0.3;
-          }
-        }),
-      );
+    const dragHandler = d3.drag().on('drag', event => {
+      const rotate = projection.rotate();
+      const k = 75 / projection.scale();
+      const newRotation: [number, number, number] = [
+        rotate[0] + event.dx * k,
+        rotate[1] - event.dy * k,
+        rotate[2],
+      ];
+
+      setRotation(newRotation);
+      projection.rotate(newRotation).scale(zoomLevel);
+
+      svg.selectAll('path').attr('d', path);
+      globe.attr('r', projection.scale());
+      drawMarkers();
+    });
+
+    svg.call(dragHandler);
 
     const handleResize = () => {
-      width = mapRef.current.getBoundingClientRect().width;
-      projection.translate([width / 2, height / 2]);
       svg.attr('width', '100%');
-      globe.attr('cx', width / 2).attr('cy', height / 2);
+      svg.attr('height', '800');
+      projection.translate([svgRef.current.clientWidth / 2, 400]);
       svg.selectAll('path').attr('d', path);
-      drawMarkers(); // 리사이즈 시 마커 좌표 업데이트
+      drawMarkers();
     };
 
     window.addEventListener('resize', handleResize);
@@ -170,9 +139,37 @@ const Map = ({data}: GlobeProps) => {
       window.removeEventListener('resize', handleResize);
       svg.remove();
     };
-  }, [data]);
+  }, [data, onAirportClick, rotation, zoomLevel]);
 
-  return <div id="map" ref={mapRef} className="w-full h-full"></div>;
+  const zoomIn = () => {
+    const newZoomLevel = Math.min(zoomLevel + 50, 500);
+    setZoomLevel(newZoomLevel);
+  };
+
+  const zoomOut = () => {
+    const newZoomLevel = Math.max(zoomLevel - 50, 100);
+    setZoomLevel(newZoomLevel);
+  };
+
+  return (
+    <div>
+      <div className="flex justify-center mb-4">
+        <button
+          onClick={zoomIn}
+          className="px-4 py-2 bg-blue-500 text-white rounded"
+        >
+          Zoom In
+        </button>
+        <button
+          onClick={zoomOut}
+          className="px-4 py-2 bg-blue-500 text-white rounded ml-2"
+        >
+          Zoom Out
+        </button>
+      </div>
+      <div id="map" ref={mapRef} className="w-full h-full" />
+    </div>
+  );
 };
 
 export default Map;

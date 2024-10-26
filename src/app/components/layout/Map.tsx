@@ -8,6 +8,8 @@ import {Airport} from '../../../types/airport.ts';
 type GlobeProps = {
   data: FeatureCollection<Geometry>;
   onAirportClick: (airport: Airport) => void;
+  zoomLevel: number;
+  setZoomLevel: React.Dispatch<React.SetStateAction<number>>;
 };
 
 const airportData: Airport[] = [
@@ -16,7 +18,7 @@ const airportData: Airport[] = [
   {name: 'John F. Kennedy International Airport', lat: 40.6413, lng: -73.7781},
 ];
 
-const Map = ({data, onAirportClick}: GlobeProps) => {
+const Map = ({data, onAirportClick, zoomLevel, setZoomLevel}: GlobeProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const markerGroupRef = useRef<SVGGElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -24,7 +26,6 @@ const Map = ({data, onAirportClick}: GlobeProps) => {
   const [rotation, setRotation] = useState<[number, number, number]>([
     0, -30, 0,
   ]);
-  const [zoomLevel, setZoomLevel] = useState<number>(250);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -32,8 +33,9 @@ const Map = ({data, onAirportClick}: GlobeProps) => {
     const svg = d3
       .select(mapRef.current)
       .append('svg')
-      .attr('width', '100%')
-      .attr('height', 800);
+      .attr('preserveAspectRatio', 'xMinYMin meet')
+      .attr('viewBox', '0 0 960 500');
+
     svgRef.current = svg.node();
 
     const projection = d3
@@ -41,7 +43,10 @@ const Map = ({data, onAirportClick}: GlobeProps) => {
       .scale(zoomLevel)
       .center([0, 0])
       .rotate(rotation)
-      .translate([svgRef.current.clientWidth / 2, 400]);
+      .translate([
+        svgRef.current.clientWidth / 2,
+        svgRef.current.clientHeight / 2,
+      ]);
 
     const path = d3.geoPath().projection(projection);
     const globe = svg
@@ -50,7 +55,7 @@ const Map = ({data, onAirportClick}: GlobeProps) => {
       .attr('stroke', '#000')
       .attr('stroke-width', '0.2')
       .attr('cx', svgRef.current.clientWidth / 2)
-      .attr('cy', 400)
+      .attr('cy', svgRef.current.clientHeight / 2)
       .attr('r', projection.scale());
 
     const map = svg.append('g');
@@ -126,8 +131,8 @@ const Map = ({data, onAirportClick}: GlobeProps) => {
     svg.call(dragHandler);
 
     const handleResize = () => {
-      svg.attr('width', '100%');
-      svg.attr('height', '800');
+      svg.attr('preserveAspectRatio', 'xMinYMin meet');
+      svg.attr('viewBox', '0 0 960 500');
       projection.translate([svgRef.current.clientWidth / 2, 400]);
       svg.selectAll('path').attr('d', path);
       drawMarkers();
@@ -141,32 +146,8 @@ const Map = ({data, onAirportClick}: GlobeProps) => {
     };
   }, [data, onAirportClick, rotation, zoomLevel]);
 
-  const zoomIn = () => {
-    const newZoomLevel = Math.min(zoomLevel + 50, 500);
-    setZoomLevel(newZoomLevel);
-  };
-
-  const zoomOut = () => {
-    const newZoomLevel = Math.max(zoomLevel - 50, 100);
-    setZoomLevel(newZoomLevel);
-  };
-
   return (
     <div>
-      <div className="flex justify-center mb-4">
-        <button
-          onClick={zoomIn}
-          className="px-4 py-2 bg-blue-500 text-white rounded"
-        >
-          Zoom In
-        </button>
-        <button
-          onClick={zoomOut}
-          className="px-4 py-2 bg-blue-500 text-white rounded ml-2"
-        >
-          Zoom Out
-        </button>
-      </div>
       <div id="map" ref={mapRef} className="w-full h-full" />
     </div>
   );

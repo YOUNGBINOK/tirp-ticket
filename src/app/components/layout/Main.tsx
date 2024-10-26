@@ -12,6 +12,8 @@ const Main = () => {
   const [startAirport, setStartAirport] = useState<Airport | null>(null);
   const [endAirport, setEndAirport] = useState<Airport | null>(null);
 
+  const [zoomLevel, setZoomLevel] = useState<number>(250);
+
   const handleAirportClick = (airport: Airport) => {
     if (!startAirport) {
       setStartAirport(airport);
@@ -24,13 +26,40 @@ const Main = () => {
     }
   };
 
+  const zoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 50, 500));
+  };
+
+  const zoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 50, 100));
+  };
+
   return (
     <div>
-      <Map data={data} onAirportClick={handleAirportClick} />
       <div className="mb-4">
         <p>출발지: {startAirport ? startAirport.name : '선택되지 않음'}</p>
         <p>도착지: {endAirport ? endAirport.name : '선택되지 않음'}</p>
       </div>
+      <div className="flex justify-center mb-4">
+        <button
+          onClick={zoomIn}
+          className="px-4 py-2 bg-blue-500 text-white rounded"
+        >
+          Zoom In
+        </button>
+        <button
+          onClick={zoomOut}
+          className="px-4 py-2 bg-blue-500 text-white rounded ml-2"
+        >
+          Zoom Out
+        </button>
+      </div>
+      <Map
+        data={data}
+        onAirportClick={handleAirportClick}
+        zoomLevel={zoomLevel}
+        setZoomLevel={setZoomLevel}
+      />
     </div>
   );
 };

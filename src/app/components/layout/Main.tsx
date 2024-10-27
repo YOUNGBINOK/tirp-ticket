@@ -3,15 +3,15 @@
 import {useState} from 'react';
 import Map from '@/app/components/layout/Map';
 import {FeatureCollection, Geometry} from 'geojson';
-import {data as rawData} from '../../../../public/data/data.ts';
-import {Airport} from '../../../types/airport.ts';
+import {data as rawData} from '../../../../public/data/world_data.ts';
+import {Airport, Airport2} from '../../../types/airport.ts';
+import {ZoomIn, ZoomOut} from 'lucide-react';
 
 const data = rawData as FeatureCollection<Geometry>;
 
 const Main = () => {
   const [startAirport, setStartAirport] = useState<Airport | null>(null);
   const [endAirport, setEndAirport] = useState<Airport | null>(null);
-
   const [zoomLevel, setZoomLevel] = useState<number>(250);
 
   const handleAirportClick = (airport: Airport) => {
@@ -45,13 +45,13 @@ const Main = () => {
           onClick={zoomIn}
           className="px-4 py-2 bg-blue-500 text-white rounded"
         >
-          Zoom In
+          <ZoomIn />
         </button>
         <button
           onClick={zoomOut}
           className="px-4 py-2 bg-blue-500 text-white rounded ml-2"
         >
-          Zoom Out
+          <ZoomOut />
         </button>
       </div>
       <Map

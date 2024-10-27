@@ -4,6 +4,7 @@ import * as d3 from 'd3';
 import {FeatureCollection, Geometry} from 'geojson';
 import {useEffect, useRef, useState} from 'react';
 import {Airport} from '../../../types/airport.ts';
+import {useInterAirportStore} from '@/hooks/store/getInterAirportStore.ts';
 
 type GlobeProps = {
   data: FeatureCollection<Geometry>;
@@ -22,10 +23,14 @@ const Map = ({data, onAirportClick, zoomLevel, setZoomLevel}: GlobeProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const markerGroupRef = useRef<SVGGElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
-
+  const {airports, fetchAirports, loading, error} = useInterAirportStore();
   const [rotation, setRotation] = useState<[number, number, number]>([
     0, -30, 0,
   ]);
+
+  // useEffect(() => {
+  //   fetchAirports();
+  // }, [fetchAirports]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -78,7 +83,7 @@ const Map = ({data, onAirportClick, zoomLevel, setZoomLevel}: GlobeProps) => {
     markerGroupRef.current = markerGroup.node();
 
     const drawMarkers = () => {
-      const markers = markerGroup.selectAll('circle').data(airportData);
+      const markers = markerGroup.selectAll('circle').data(airports);
 
       markers
         .enter()
@@ -91,8 +96,34 @@ const Map = ({data, onAirportClick, zoomLevel, setZoomLevel}: GlobeProps) => {
         .on('click', (event, d) => {
           event.stopPropagation();
           onAirportClick(d);
-        });
+        })
+        .on('mouseover', function (event, d) {
+          d3.select(this)
+            .transition()
+            .duration(100)
+            .attr('fill', 'blue') // Change color on hover
+            .attr('r', 6); // Increase size on hover
 
+          svg
+            .append('text')
+            .attr('id', 'tooltip')
+            .attr('x', projection([d.lng, d.lat])![0] + 10) // Offset to avoid overlapping with the marker
+            .attr('y', projection([d.lng, d.lat])![1] - 10)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '12px')
+            .attr('fill', 'black')
+            .text(d.name); // Display airport name or other info
+        })
+        .on('mouseout', function () {
+          d3.select(this)
+            .transition()
+            .duration(100)
+            .attr('fill', 'red') // Reset color on mouseout
+            .attr('r', 4); // Reset size on mouseout
+
+          // Remove tooltip
+          svg.select('#tooltip').remove();
+        });
       markers.exit().remove();
     };
 

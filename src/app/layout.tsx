@@ -16,10 +16,10 @@ function RootLayout({children}: {children: React.ReactNode}) {
       <body className={inter.className}>
         <Navbar />
         <div className="flex">
-          <div className="hidden sm:block">
+          <div className="w-1/6 hidden sm:block">
             <Sidebar />
           </div>
-          <main className="w-full p-4">{children}</main>
+          <main className="w-5/6">{children}</main>
         </div>
 
         {/* <Suspense>

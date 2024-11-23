@@ -1,11 +1,5 @@
 import {Airport} from '@/types/airport';
 
-const airportData = [
-  {name: 'Incheon International Airport', lat: 37.4602, lng: 126.4407},
-  {name: 'Los Angeles International Airport', lat: 33.9416, lng: -118.4085},
-  {name: 'John F. Kennedy International Airport', lat: 40.6413, lng: -73.7781},
-];
-
 const convertToSphereCoords = (
   lng: number,
   lat: number,
@@ -22,9 +16,9 @@ const convertToSphereCoords = (
 };
 
 export const AirportMarkers: React.FC<{
-  airports: typeof airportData;
+  airports: Airport[]; // 타입 수정
   radius: number;
-  onClick: (airport: (typeof airportData)[number]) => void;
+  onClick: (airport: Airport) => void; // 타입 수정
 }> = ({airports, radius, onClick}) => {
   return (
     <>

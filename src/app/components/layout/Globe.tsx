@@ -6,10 +6,17 @@ import {OrbitControls} from '@react-three/drei';
 import * as d3 from 'd3';
 import * as THREE from 'three';
 import {FeatureCollection, Geometry} from 'geojson';
+import {AirportMarkers} from '@/app/components/layout/AirportMarkers';
 
 type GlobeProps = {
   data: FeatureCollection<Geometry>;
 };
+
+const airportData = [
+  {name: 'Incheon International Airport', lat: 37.4602, lng: 126.4407},
+  {name: 'Los Angeles International Airport', lat: 33.9416, lng: -118.4085},
+  {name: 'John F. Kennedy International Airport', lat: 40.6413, lng: -73.7781},
+];
 
 // 기본 설정
 const CANVAS_WIDTH = 8192;
@@ -88,7 +95,11 @@ const Globe: React.FC<GlobeProps> = ({data}) => {
   const textureRef = useRef<THREE.Texture | null>(null);
   const [texture, setTexture] = useState<THREE.Texture | null>(null);
 
-  // 텍스처를 useEffect로 생성하도록 보장
+  // 공항 클릭 이벤트
+  const handleAirportClick = (airport: (typeof airportData)[number]) => {
+    console.log(`Selected Airport: ${airport.name}`);
+  };
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const generatedTexture = getTexture(data);
@@ -114,6 +125,13 @@ const Globe: React.FC<GlobeProps> = ({data}) => {
           <meshBasicMaterial map={texture} />
         </mesh>
       )}
+
+      {/* 공항 마커 추가 */}
+      <AirportMarkers
+        airports={airportData}
+        radius={3} // Globe 반지름
+        onClick={handleAirportClick}
+      />
     </Canvas>
   );
 };
